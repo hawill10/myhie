@@ -1,0 +1,28 @@
+Program Execution: ./myhie -i InputFile -k NumOfWorkers -r -a AttributeNumber -o Order -s OutputFile
+
+Structure
+1. Root forks Coord
+2. Coord forks Merger
+3. Coord forks Workers 
+
+Process:
+1. Root forks Coord (Coord is run using execv() - gets all arguments passed during program invocation)
+2. Coord parses the arguments.
+3. Coord creates a range that each worker should work on.
+4. Coord creates pipes each for a worker and a merger, and one for passing time statistics.
+5. Coord forks merger which immediate starts reading from pipe.
+6. Coord forks workers in a for loop
+7. Each worker calls a sorting program using execl(), providing them with information that includes:
+	- which sort to run (quick sort or merge sort)
+	- what is the number of the worker (1 ~ NumOfWorkers)
+	- where to read from the input file (range)
+	- which attribute to perform sorting on
+	- file descriptor to write sorted records and time statistics
+8. Worker waits until sorter to finish, and send SIGUSR1 to Root before exiting
+9. Merger reads all records from workers and merge them.
+10. Merger writes the outcome to an output file, print all time statistics sent by workers and itself, and send SIGUSR2 to Coord.
+11. Coord receives SIGUSR2, releases all dynamically allocated memory, and sends SIGUSR2 to Root.
+12. Coord waits for Merger to exit, then prints its time statistics.
+13. Root waits for Coord to exit, then prints the number of SIGUSRs received and its time statistics.
+
+Please be patient working with large files. It may take a few minutes :)
